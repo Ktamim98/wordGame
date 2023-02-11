@@ -16,6 +16,11 @@ class ViewController: UITableViewController {
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(promptForAns))
         
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "NEW GAME", style: .plain, target: self, action: #selector(startGame))
+        
+        
+        
         if let startWordsUrl = Bundle.main.url(forResource: "start", withExtension: "txt"){
             if let startWords = try? String(contentsOf: startWordsUrl){
                 allWord = startWords.components(separatedBy: "\n")
@@ -26,7 +31,7 @@ class ViewController: UITableViewController {
         }
         startGame()
     }
-    func startGame(){
+  @objc func startGame(){
         title = allWord.randomElement()
         useWord.removeAll(keepingCapacity: true)
         tableView.reloadData()
@@ -63,17 +68,17 @@ class ViewController: UITableViewController {
         if isPossible(word: lowerAns){
             if isOriginal(word: lowerAns){
                 if isReal(word: lowerAns){
-                    useWord.insert(answare, at: 0)
+                    useWord.insert(lowerAns, at: 0)
                     
                     
                     let indexPath = IndexPath(row: 0, section: 0)
                     tableView.insertRows(at: [indexPath], with: .automatic)
                     
-                   return
+                    return
                     
                 }else{
-                errorTitle = "Oops!"
-                errorMassage = "you can't use this word"
+                    errorTitle = "Oops!"
+                    errorMassage = "you can't use this word or word should be more then 3 letters"
                 }
             }else{
                 errorTitle = "Oops!"
@@ -93,7 +98,7 @@ class ViewController: UITableViewController {
     
     func isPossible(word: String) -> Bool {
         guard var tempWord = title?.lowercased() else { return false }
-
+        
         for letter in word {
             if let position = tempWord.firstIndex(of: letter) {
                 tempWord.remove(at: position)
@@ -101,19 +106,25 @@ class ViewController: UITableViewController {
                 return false
             }
         }
-
+        
         return true
     }
     
     func isOriginal(word: String) -> Bool{
+        guard word != title  else {return false}
         return !useWord.contains(word)
-    
+        
     }
-func isReal(word: String) -> Bool {
-    let checker = UITextChecker()
-    let range = NSRange(location: 0, length: word.utf16.count)
-    let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
-return misspelledRange.location == NSNotFound
- }
+    func isReal(word: String) -> Bool {
+        guard word.count > 3 else {return false}
+        
+            let checker = UITextChecker()
+            let range = NSRange(location: 0, length: word.utf16.count)
+            let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
+            return misspelledRange.location == NSNotFound
+            
+        }
+    
+    
+    
 }
-
