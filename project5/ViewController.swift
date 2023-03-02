@@ -10,6 +10,7 @@ import UIKit
 class ViewController: UITableViewController {
     var allWord = [String]()
     var useWord = [String]()
+    var currentWord: String?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,101 +31,132 @@ class ViewController: UITableViewController {
             allWord = ["silkworm"]
         }
         startGame()
-    }
-  @objc func startGame(){
-        title = allWord.randomElement()
-        useWord.removeAll(keepingCapacity: true)
-        tableView.reloadData()
-    }
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return useWord.count
-    }
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "word", for: indexPath)
-        cell.textLabel?.text = useWord[indexPath.row]
-        return cell
+        
+        let defaults = UserDefaults.standard
+                if let presentWord = defaults.object(forKey: "presentWord") as? String,
+                    let savedWords = defaults.object(forKey: "savedWords") as? [String] {
+                    
+                    currentWord = presentWord
+                    useWord = savedWords
+                    
+                }
+       
         
     }
-    @objc func promptForAns(){
-        let ac = UIAlertController(title: "ENTER ANS", message: nil, preferredStyle: .alert)
-        ac.addTextField()
+    
+
         
         
-        let submitAction = UIAlertAction(title: "submit", style: .default){
-            [weak self, weak ac] _ in
-            guard let answer = ac?.textFields?[0].text else {return}
-            self?.submit(answer)
+        @objc func startGame(){
+            title = allWord.randomElement()
+            
+            //useWord.removeAll(keepingCapacity: true)
+            save()
+            tableView.reloadData()
+            
+            
+                      
         }
-        ac.addAction(submitAction)
-        present(ac, animated: true)
-    }
-    func submit(_ answare: String){
-        let lowerAns = answare.lowercased()
-        
-        let errorTitle: String
-        let errorMassage: String
-        
-        
-        if isPossible(word: lowerAns){
-            if isOriginal(word: lowerAns){
-                if isReal(word: lowerAns){
-                    useWord.insert(lowerAns, at: 0)
-                    
-                    
-                    let indexPath = IndexPath(row: 0, section: 0)
-                    tableView.insertRows(at: [indexPath], with: .automatic)
-                    
-                    return
-                    
+        override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+            return useWord.count
+        }
+        override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+            let cell = tableView.dequeueReusableCell(withIdentifier: "word", for: indexPath)
+            cell.textLabel?.text = useWord[indexPath.row]
+            return cell
+            
+            
+        }
+        @objc func promptForAns(){
+            let ac = UIAlertController(title: "ENTER ANS", message: nil, preferredStyle: .alert)
+            ac.addTextField()
+            
+            
+            let submitAction = UIAlertAction(title: "submit", style: .default){
+                [weak self, weak ac] _ in
+                guard let answer = ac?.textFields?[0].text else {return}
+                self?.submit(answer)
+            }
+            ac.addAction(submitAction)
+            present(ac, animated: true)
+        }
+        func submit(_ answare: String){
+            let lowerAns = answare.lowercased()
+            
+            let errorTitle: String
+            let errorMassage: String
+            
+            
+            if isPossible(word: lowerAns){
+                if isOriginal(word: lowerAns){
+                    if isReal(word: lowerAns){
+                        useWord.insert(lowerAns, at: 0)
+                        save()
+                        
+                        let indexPath = IndexPath(row: 0, section: 0)
+                        tableView.insertRows(at: [indexPath], with: .automatic)
+                        
+                        return
+                        
+                    }else{
+                        errorTitle = "Oops!"
+                        errorMassage = "you can't use this word or word should be more then 3 letters"
+                    }
                 }else{
                     errorTitle = "Oops!"
-                    errorMassage = "you can't use this word or word should be more then 3 letters"
+                    errorMassage = "you can't repeat same word"
                 }
             }else{
                 errorTitle = "Oops!"
-                errorMassage = "you can't repeat same word"
+                errorMassage = "this is not a word"
             }
-        }else{
-            errorTitle = "Oops!"
-            errorMassage = "this is not a word"
+            
+            let ac = UIAlertController(title: errorTitle, message: errorMassage, preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            present(ac, animated: true)
         }
         
-        let ac = UIAlertController(title: errorTitle, message: errorMassage, preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "OK", style: .default))
-        present(ac, animated: true)
-    }
-    
-    
-    
-    func isPossible(word: String) -> Bool {
-        guard var tempWord = title?.lowercased() else { return false }
         
-        for letter in word {
-            if let position = tempWord.firstIndex(of: letter) {
-                tempWord.remove(at: position)
-            } else {
-                return false
+        
+        func isPossible(word: String) -> Bool {
+            guard var tempWord = title?.lowercased() else { return false }
+            
+            for letter in word {
+                if let position = tempWord.firstIndex(of: letter) {
+                    tempWord.remove(at: position)
+                } else {
+                    return false
+                }
             }
+            
+            return true
         }
         
-        return true
-    }
-    
-    func isOriginal(word: String) -> Bool{
-        guard word != title  else {return false}
-        return !useWord.contains(word)
-        
-    }
-    func isReal(word: String) -> Bool {
-        guard word.count > 3 else {return false}
-        
+        func isOriginal(word: String) -> Bool{
+            guard word != title  else {return false}
+            return !useWord.contains(word)
+            
+        }
+        func isReal(word: String) -> Bool {
+            guard word.count > 3 else {return false}
+            
             let checker = UITextChecker()
             let range = NSRange(location: 0, length: word.utf16.count)
             let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
             return misspelledRange.location == NSNotFound
             
         }
+        
+        
+       
+    func save() {
+            let defaults = UserDefaults.standard
+            defaults.set(currentWord, forKey: "presentWord")
+            defaults.set(useWord, forKey: "savedWords")
+        }
     
-    
-    
-}
+        
+        
+        
+    }
+        
